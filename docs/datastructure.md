@@ -25,3 +25,7 @@
 ### 3. 堆栈
 
 ![](images\stack.png)
+
+### 4. 哈希
+
+![](images\hashtable.png)
