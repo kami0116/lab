@@ -21,3 +21,7 @@
 #### 2.4 数组队列
 
 ![](images\array list.png)
+
+### 3. 堆栈
+
+![](images\stack.png)
