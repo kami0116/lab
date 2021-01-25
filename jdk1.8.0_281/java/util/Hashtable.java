@@ -364,7 +364,7 @@ public class Hashtable<K,V>
         int hash = key.hashCode();
         int index = (hash & 0x7FFFFFFF) % tab.length;
         for (Entry<?,?> e = tab[index] ; e != null ; e = e.next) {
-            if ((e.hash == hash) && e.key.equals(key)) {
+            if ((e.hash == hash) && e.key.equals(key)) {//用hash定位到行后挨个找
                 return (V)e.value;
             }
         }
@@ -392,7 +392,7 @@ public class Hashtable<K,V>
         Entry<?,?>[] oldMap = table;
 
         // overflow-conscious code
-        int newCapacity = (oldCapacity << 1) + 1;
+        int newCapacity = (oldCapacity << 1) + 1;//新容量是旧容量的2倍+1
         if (newCapacity - MAX_ARRAY_SIZE > 0) {
             if (oldCapacity == MAX_ARRAY_SIZE)
                 // Keep running with MAX_ARRAY_SIZE buckets
@@ -402,13 +402,13 @@ public class Hashtable<K,V>
         Entry<?,?>[] newMap = new Entry<?,?>[newCapacity];
 
         modCount++;
-        threshold = (int)Math.min(newCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
+        threshold = (int)Math.min(newCapacity * loadFactor, MAX_ARRAY_SIZE + 1);//扩容阈值默认为容量的0.75
         table = newMap;
 
-        for (int i = oldCapacity ; i-- > 0 ;) {
+        for (int i = oldCapacity ; i-- > 0 ;) {//全部重新hash，重新link到新table中
             for (Entry<K,V> old = (Entry<K,V>)oldMap[i] ; old != null ; ) {
                 Entry<K,V> e = old;
-                old = old.next;
+                old = old.next;//这句为啥不放for里？
 
                 int index = (e.hash & 0x7FFFFFFF) % newCapacity;
                 e.next = (Entry<K,V>)newMap[index];
@@ -421,7 +421,7 @@ public class Hashtable<K,V>
         modCount++;
 
         Entry<?,?> tab[] = table;
-        if (count >= threshold) {
+        if (count >= threshold) {//如果table中count的数量达到阈值，就要扩容
             // Rehash the table if the threshold is exceeded
             rehash();
 
@@ -433,7 +433,7 @@ public class Hashtable<K,V>
         // Creates the new entry.
         @SuppressWarnings("unchecked")
         Entry<K,V> e = (Entry<K,V>) tab[index];
-        tab[index] = new Entry<>(hash, key, value, e);
+        tab[index] = new Entry<>(hash, key, value, e);//放链表头
         count++;
     }
 
@@ -463,10 +463,10 @@ public class Hashtable<K,V>
         // Makes sure the key is not already in the hashtable.
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
-        int index = (hash & 0x7FFFFFFF) % tab.length;
+        int index = (hash & 0x7FFFFFFF) % tab.length;//mask掉最高位
         @SuppressWarnings("unchecked")
         Entry<K,V> entry = (Entry<K,V>)tab[index];
-        for(; entry != null ; entry = entry.next) {
+        for(; entry != null ; entry = entry.next) {//如果key已经有了，就覆盖
             if ((entry.hash == hash) && entry.key.equals(key)) {
                 V old = entry.value;
                 entry.value = value;
@@ -474,7 +474,7 @@ public class Hashtable<K,V>
             }
         }
 
-        addEntry(hash, key, value, index);
+        addEntry(hash, key, value, index);//如果没有key就新增一个entry
         return null;
     }
 
