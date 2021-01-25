@@ -135,7 +135,7 @@ public class LinkedList<E>
     }
 
     /**
-     * Links e as last element.
+     * Links e as last element.新建结点，加到最后
      */
     void linkLast(E e) {
         final Node<E> l = last;
@@ -565,7 +565,7 @@ public class LinkedList<E>
      */
     Node<E> node(int index) {
         // assert isElementIndex(index);
-
+        //index小于size/2，从头开始找，大于size/2，从尾开始找
         if (index < (size >> 1)) {
             Node<E> x = first;
             for (int i = 0; i < index; i++)
