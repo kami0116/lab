@@ -400,7 +400,7 @@ public class CopyOnWriteArrayList<E>
     /**
      * Replaces the element at the specified position in this list with the
      * specified element.
-     *
+     * 更新元素也要copy?
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
     public E set(int index, E element) {
@@ -437,9 +437,9 @@ public class CopyOnWriteArrayList<E>
         try {
             Object[] elements = getArray();
             int len = elements.length;
-            Object[] newElements = Arrays.copyOf(elements, len + 1);
-            newElements[len] = e;
-            setArray(newElements);
+            Object[] newElements = Arrays.copyOf(elements, len + 1);//直接拷贝
+            newElements[len] = e;//添加到末尾
+            setArray(newElements);//将array的引用指向新数组
             return true;
         } finally {
             lock.unlock();

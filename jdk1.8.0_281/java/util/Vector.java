@@ -178,6 +178,7 @@ public class Vector<E>
         } else {
             elementData = Arrays.copyOf(a, elementCount, Object[].class);
         }
+
     }
 
     /**
@@ -263,7 +264,7 @@ public class Vector<E>
         // overflow-conscious code
         int oldCapacity = elementData.length;
         int newCapacity = oldCapacity + ((capacityIncrement > 0) ?
-                                         capacityIncrement : oldCapacity);
+                                         capacityIncrement : oldCapacity);//如果配置了增长量，就等差增长；如果没有配置就加倍，等比增长
         if (newCapacity - minCapacity < 0)
             newCapacity = minCapacity;
         if (newCapacity - MAX_ARRAY_SIZE > 0)
@@ -777,7 +778,7 @@ public class Vector<E>
 
     /**
      * Appends the specified element to the end of this Vector.
-     *
+     * 将元素添加到向量末尾
      * @param e element to be appended to this Vector
      * @return {@code true} (as specified by {@link Collection#add})
      * @since 1.2

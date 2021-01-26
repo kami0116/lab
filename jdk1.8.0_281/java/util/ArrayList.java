@@ -162,7 +162,7 @@ public class ArrayList<E> extends AbstractList<E>
     /**
      * Constructs an empty list with an initial capacity of ten.
      */
-    public ArrayList() {
+    public ArrayList() {//默认初始化一个空数组
         this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
     }
 
@@ -234,10 +234,10 @@ public class ArrayList<E> extends AbstractList<E>
     }
 
     private void ensureExplicitCapacity(int minCapacity) {
-        modCount++;
+        modCount++;//每次modify都会加1
 
         // overflow-conscious code
-        if (minCapacity - elementData.length > 0)
+        if (minCapacity - elementData.length > 0)//如果容量不够了，就扩容
             grow(minCapacity);
     }
 
@@ -258,16 +258,16 @@ public class ArrayList<E> extends AbstractList<E>
     private void grow(int minCapacity) {
         // overflow-conscious code
         int oldCapacity = elementData.length;
-        int newCapacity = oldCapacity + (oldCapacity >> 1);
+        int newCapacity = oldCapacity + (oldCapacity >> 1);//新容量为原容量的1.5倍
         if (newCapacity - minCapacity < 0)
             newCapacity = minCapacity;
-        if (newCapacity - MAX_ARRAY_SIZE > 0)
+        if (newCapacity - MAX_ARRAY_SIZE > 0)//如果新容量超过MAX_ARRAY_SIZE限制了，就扩展为MAX_ARRAY_SIZE或最大整数
             newCapacity = hugeCapacity(minCapacity);
         // minCapacity is usually close to size, so this is a win:
         elementData = Arrays.copyOf(elementData, newCapacity);
     }
 
-    private static int hugeCapacity(int minCapacity) {
+    private static int hugeCapacity(int minCapacity) {//溢出到负数，报错；接近最大整数时，用最大整数代替
         if (minCapacity < 0) // overflow
             throw new OutOfMemoryError();
         return (minCapacity > MAX_ARRAY_SIZE) ?
@@ -461,7 +461,7 @@ public class ArrayList<E> extends AbstractList<E>
      * @return <tt>true</tt> (as specified by {@link Collection#add})
      */
     public boolean add(E e) {
-        ensureCapacityInternal(size + 1);  // Increments modCount!!
+        ensureCapacityInternal(size + 1);  // Increments modCount!! 确保数组能容下size+1的容量，如果不能就扩容
         elementData[size++] = e;
         return true;
     }

@@ -329,25 +329,25 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
 
         for (Node<E> t = tail, p = t;;) {
             Node<E> q = p.next;
-            if (q == null) {
+            if (q == null) {//1.如果p还是最后一个，就进行cas尝试
                 // p is last node
-                if (p.casNext(null, newNode)) {
+                if (p.casNext(null, newNode)) {//1.1 cas成功
                     // Successful CAS is the linearization point
                     // for e to become an element of this queue,
                     // and for newNode to become "live".
-                    if (p != t) // hop two nodes at a time
-                        casTail(t, newNode);  // Failure is OK.
+                    if (p != t) // hop two nodes at a time//如果t指向的不是最后一个（newNode之前的结点）
+                        casTail(t, newNode);  // Failure is OK. //this.tail指向newNode，期望是t，update是newNode,如果失败了，说明已经设置了其他的newNode
                     return true;
                 }
                 // Lost CAS race to another thread; re-read next
             }
-            else if (p == q)
+            else if (p == q)//2. 遇到哨兵了，表示该线程走得太慢，被head超过形成了哨兵。
                 // We have fallen off list.  If tail is unchanged, it
                 // will also be off-list, in which case we need to
                 // jump to head, from which all live nodes are always
                 // reachable.  Else the new tail is a better bet.
-                p = (t != (t = tail)) ? t : head;
-            else
+                p = (t != (t = tail)) ? t : head;//如果tail往前走了就优先指向tail，否则指向head，head这时候可能已经超过tail了。
+            else//3. 如果tail走到p前面了，让p追上tail，否则p就往前走一个
                 // Check for tail updates after two hops.
                 p = (p != t && t != (t = tail)) ? t : q;
         }
@@ -359,21 +359,21 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
             for (Node<E> h = head, p = h, q;;) {
                 E item = p.item;
 
-                if (item != null && p.casItem(item, null)) {
+                if (item != null && p.casItem(item, null)) {//1. 如果数据还没被取走，就尝试取数据
                     // Successful CAS is the linearization point
                     // for item to be removed from this queue.
-                    if (p != h) // hop two nodes at a time
+                    if (p != h) // hop two nodes at a time//如果刚才取到的对象不是head指向的对象就更新head且让旧head形成哨兵
                         updateHead(h, ((q = p.next) != null) ? q : p);
                     return item;
                 }
-                else if ((q = p.next) == null) {
+                else if ((q = p.next) == null) {//2. 如果p是最后一个了，就更新head，返回null，表示没有数据
                     updateHead(h, p);
                     return null;
                 }
-                else if (p == q)
+                else if (p == q)//3. 如果遇到哨兵了，就从“头”开始
                     continue restartFromHead;
                 else
-                    p = q;
+                    p = q;//4. 往前走一步
             }
         }
     }
