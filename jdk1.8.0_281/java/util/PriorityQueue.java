@@ -648,7 +648,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     }
 
     @SuppressWarnings("unchecked")
-    private void siftUpComparable(int k, E x) {
+    private void siftUpComparable(int k, E x) {//做成一个小顶堆
         Comparable<? super E> key = (Comparable<? super E>) x;
         while (k > 0) {
             int parent = (k - 1) >>> 1;
@@ -690,12 +690,12 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     }
 
     @SuppressWarnings("unchecked")
-    private void siftDownComparable(int k, E x) {
+    private void siftDownComparable(int k, E x) {//以x为标准，从k点开始往下往一直选择最小孩子的路径走，把最小孩子都往上提。直到大于x的结点或者k已经超过一半的结点为止（超过一半意味着再往下就没有子结点了）。
         Comparable<? super E> key = (Comparable<? super E>)x;
         int half = size >>> 1;        // loop while a non-leaf
         while (k < half) {
             int child = (k << 1) + 1; // assume left child is least
-            Object c = queue[child];
+            Object c = queue[child];//左右孩子中的最小值
             int right = child + 1;
             if (right < size &&
                 ((Comparable<? super E>) c).compareTo((E) queue[right]) > 0)

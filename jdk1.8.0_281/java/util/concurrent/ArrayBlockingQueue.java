@@ -324,7 +324,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     public boolean offer(E e) {
         checkNotNull(e);
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock();//简单粗暴直接lock
         try {
             if (count == items.length)
                 return false;
