@@ -1,3 +1,5 @@
 target
 *.iml
 .idea
+src/test/resources/ascii_table.txt
+src/test/java/Lab.java
