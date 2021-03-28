@@ -203,10 +203,10 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * acquire on failure.
          */
         final void lock() {
-            if (compareAndSetState(0, 1))
-                setExclusiveOwnerThread(Thread.currentThread());
+            if (compareAndSetState(0, 1))//1.cas
+                setExclusiveOwnerThread(Thread.currentThread());//1.1 cas成功，将当前线程设置为锁的独占拥有者
             else
-                acquire(1);
+                acquire(1);//1.2 调用AQS的acquire
         }
 
         protected final boolean tryAcquire(int acquires) {

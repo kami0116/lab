@@ -381,7 +381,7 @@ public class ReentrantReadWriteLock
             /*
              * Walkthrough:
              * 1. If read count nonzero or write count nonzero
-             *    and owner is a different thread, fail.
+             *    and owner is a different thread, fail.  如果读count不为0，或写count不为0
              * 2. If count would saturate, fail. (This can only
              *    happen if count is already nonzero.)
              * 3. Otherwise, this thread is eligible for lock if
@@ -391,19 +391,19 @@ public class ReentrantReadWriteLock
              */
             Thread current = Thread.currentThread();
             int c = getState();
-            int w = exclusiveCount(c);
-            if (c != 0) {
+            int w = exclusiveCount(c);//write, state的低16位,独占线程count
+            if (c != 0) {//1. 如果c不等于0代表有线程未释放锁
                 // (Note: if c != 0 and w == 0 then shared count != 0)
-                if (w == 0 || current != getExclusiveOwnerThread())
+                if (w == 0 || current != getExclusiveOwnerThread())//1.1 write为0，read不为0；或当前线程没有获得该锁，获取失败，return
                     return false;
-                if (w + exclusiveCount(acquires) > MAX_COUNT)
+                if (w + exclusiveCount(acquires) > MAX_COUNT)//1.2 如果exclusive count溢出，报错
                     throw new Error("Maximum lock count exceeded");
                 // Reentrant acquire
-                setState(c + acquires);
+                setState(c + acquires);//1.3 当前线程是锁的拥有者，同时+acquires也不会溢出，更新state，获取成功
                 return true;
             }
-            if (writerShouldBlock() ||
-                !compareAndSetState(c, c + acquires))
+            if (writerShouldBlock() ||//2. 如果不能获取锁，检查线程是否需要被阻塞；非公平锁不阻塞，公平锁要看当前线程的node是不是队列里的第一个node
+                !compareAndSetState(c, c + acquires))//3. 如果线程不需要被阻塞则cas尝试一次，尝试不成功return false，尝试成功把所得独占拥有者改为当前线程并return true
                 return false;
             setExclusiveOwnerThread(current);
             return true;
@@ -464,28 +464,28 @@ public class ReentrantReadWriteLock
             Thread current = Thread.currentThread();
             int c = getState();
             if (exclusiveCount(c) != 0 &&
-                getExclusiveOwnerThread() != current)
+                getExclusiveOwnerThread() != current)//1. 如果有写线程获得了该锁且当前线程不是该锁的拥有者（允许在写锁的临界区域里面进行读操作），则获取失败return -1
                 return -1;
-            int r = sharedCount(c);
-            if (!readerShouldBlock() &&
+            int r = sharedCount(c);//read count
+            if (!readerShouldBlock() &&//2. 如果线程需要被阻塞直接跳过本次cas，走下面的fullTryAcquireShared
                 r < MAX_COUNT &&
-                compareAndSetState(c, c + SHARED_UNIT)) {
-                if (r == 0) {
+                compareAndSetState(c, c + SHARED_UNIT)) {//3. cas尝试shared count + 1
+                if (r == 0) {//3.1 如果当前线程是第一个成功获取共享锁的，把firstReader设置为当前线程：
                     firstReader = current;
                     firstReaderHoldCount = 1;
-                } else if (firstReader == current) {
+                } else if (firstReader == current) {//3.2 如果当前线程重复获取了该锁且第一个获取该锁的就是本线程：
                     firstReaderHoldCount++;
-                } else {
+                } else {//3.3 如果当前线程不是第一个获取共享锁的线程，就对当前线程的HoldCounter的count+1
                     HoldCounter rh = cachedHoldCounter;
-                    if (rh == null || rh.tid != getThreadId(current))
-                        cachedHoldCounter = rh = readHolds.get();
-                    else if (rh.count == 0)
+                    if (rh == null || rh.tid != getThreadId(current))//3.3.1 如果holdcounter还没有初始化，就get，因为ThreadLocalHoldCounter继承了ThreadLocal并重写了initialValue方法，在第一次获取时会初始化一个新对对象
+                        cachedHoldCounter = rh = readHolds.get();//更新cache
+                    else if (rh.count == 0)//3.3.2 如果holdcounter刚初始化就把它放到threadlocals里
                         readHolds.set(rh);
-                    rh.count++;
+                    rh.count++;//3.3.3 count++
                 }
-                return 1;
+                return 1;//3.4
             }
-            return fullTryAcquireShared(current);
+            return fullTryAcquireShared(current);//4. 前面try了，但没有完全try
         }
 
         /**
@@ -502,16 +502,16 @@ public class ReentrantReadWriteLock
             HoldCounter rh = null;
             for (;;) {
                 int c = getState();
-                if (exclusiveCount(c) != 0) {
+                if (exclusiveCount(c) != 0) {//1. 写线程拿了该锁，且写线程不是本线程，不能获取该锁
                     if (getExclusiveOwnerThread() != current)
                         return -1;
                     // else we hold the exclusive lock; blocking here
                     // would cause deadlock.
-                } else if (readerShouldBlock()) {
+                } else if (readerShouldBlock()) {//2.如果当前读线程应该block
                     // Make sure we're not acquiring read lock reentrantly
                     if (firstReader == current) {
                         // assert firstReaderHoldCount > 0;
-                    } else {
+                    } else {//2.1 如果第一个获得读锁的线程不是本线程，就继续查看本线程有没有获取读锁，如果没有就不能再尝试了
                         if (rh == null) {
                             rh = cachedHoldCounter;
                             if (rh == null || rh.tid != getThreadId(current)) {
@@ -524,15 +524,15 @@ public class ReentrantReadWriteLock
                             return -1;
                     }
                 }
-                if (sharedCount(c) == MAX_COUNT)
+                if (sharedCount(c) == MAX_COUNT)// shared count要溢出了，报错
                     throw new Error("Maximum lock count exceeded");
-                if (compareAndSetState(c, c + SHARED_UNIT)) {
-                    if (sharedCount(c) == 0) {
+                if (compareAndSetState(c, c + SHARED_UNIT)) {//3.CAS。如果cas成功了执行下面的逻辑，如果失败了就重新尝试
+                    if (sharedCount(c) == 0) {//3.1 当前线程是第一个，第一次获取锁的线程
                         firstReader = current;
                         firstReaderHoldCount = 1;
-                    } else if (firstReader == current) {
+                    } else if (firstReader == current) {//3.2 当前线程只是第一个获得锁的线程
                         firstReaderHoldCount++;
-                    } else {
+                    } else {//3.3 当前线程不是第一个获得锁的线程，处理一下holdcounter
                         if (rh == null)
                             rh = cachedHoldCounter;
                         if (rh == null || rh.tid != getThreadId(current))
@@ -555,16 +555,16 @@ public class ReentrantReadWriteLock
         final boolean tryWriteLock() {
             Thread current = Thread.currentThread();
             int c = getState();
-            if (c != 0) {
+            if (c != 0) {//有线程抢到锁了
                 int w = exclusiveCount(c);
-                if (w == 0 || current != getExclusiveOwnerThread())
+                if (w == 0 || current != getExclusiveOwnerThread())//没有写进程抢到锁，或者抢到锁的进程不是自己，fail
                     return false;
-                if (w == MAX_COUNT)
+                if (w == MAX_COUNT)//如果写进程把16位占满了，报错
                     throw new Error("Maximum lock count exceeded");
             }
-            if (!compareAndSetState(c, c + 1))
+            if (!compareAndSetState(c, c + 1))//cas只尝试一次，因为如果有任何其他线程抢到锁了，本线程（写进程）必然不能再去争这把锁了
                 return false;
-            setExclusiveOwnerThread(current);
+            setExclusiveOwnerThread(current);//设置此线程拥有该锁
             return true;
         }
 
@@ -578,12 +578,12 @@ public class ReentrantReadWriteLock
             for (;;) {
                 int c = getState();
                 if (exclusiveCount(c) != 0 &&
-                    getExclusiveOwnerThread() != current)
+                    getExclusiveOwnerThread() != current)//1.如果有写进程抢到锁了就不能再抢了
                     return false;
                 int r = sharedCount(c);
-                if (r == MAX_COUNT)
+                if (r == MAX_COUNT)//如果读进程过多，让16位的read count overflow了就报错
                     throw new Error("Maximum lock count exceeded");
-                if (compareAndSetState(c, c + SHARED_UNIT)) {
+                if (compareAndSetState(c, c + SHARED_UNIT)) {//2.cas高位+1，如果没抢到就继续
                     if (r == 0) {
                         firstReader = current;
                         firstReaderHoldCount = 1;

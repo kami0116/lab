@@ -383,11 +383,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
-    private static final int RUNNING    = -1 << COUNT_BITS;
-    private static final int SHUTDOWN   =  0 << COUNT_BITS;
-    private static final int STOP       =  1 << COUNT_BITS;
-    private static final int TIDYING    =  2 << COUNT_BITS;
-    private static final int TERMINATED =  3 << COUNT_BITS;
+    private static final int RUNNING    = -1 << COUNT_BITS;//接受新任务，执行队列里的任务
+    private static final int SHUTDOWN   =  0 << COUNT_BITS;//不接受新任务，但是执行队列里的任务
+    private static final int STOP       =  1 << COUNT_BITS;//不接受新任务，不执行队列里的任务，中断正在执行的任务
+    private static final int TIDYING    =  2 << COUNT_BITS;//所有任务都结束了，worker数量为0，将会执行terminated()钩子方法
+    private static final int TERMINATED =  3 << COUNT_BITS;//terminated()执行完了
 
     // Packing and unpacking ctl
     private static int runStateOf(int c)     { return c & ~CAPACITY; }
@@ -914,12 +914,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             for (;;) {
                 int wc = workerCountOf(c);
                 if (wc >= CAPACITY ||
-                    wc >= (core ? corePoolSize : maximumPoolSize))
+                    wc >= (core ? corePoolSize : maximumPoolSize))//如果超出线程限制，则添加任务失败
                     return false;
-                if (compareAndIncrementWorkerCount(c))
+                if (compareAndIncrementWorkerCount(c))//cas，如果成功了，说明没有其他线程修改，那么之前的判断是可用的，且拿到新增任务入场券了，就可以退出spin了
                     break retry;
                 c = ctl.get();  // Re-read ctl
-                if (runStateOf(c) != rs)
+                if (runStateOf(c) != rs)//如果run state改变了去外面的循环接受queue empty的check,如果没有改变，依旧在内循环里spin
                     continue retry;
                 // else CAS failed due to workerCount change; retry inner loop
             }

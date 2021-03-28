@@ -583,10 +583,10 @@ public abstract class AbstractQueuedSynchronizer
     private Node enq(final Node node) {
         for (;;) {
             Node t = tail;
-            if (t == null) { // Must initialize
-                if (compareAndSetHead(new Node()))
+            if (t == null) { // Must initialize //1. 如果队列没有初始化，先初始化
+                if (compareAndSetHead(new Node()))//head中是不存放内容的
                     tail = head;
-            } else {
+            } else {//
                 node.prev = t;
                 if (compareAndSetTail(t, node)) {
                     t.next = node;
@@ -598,22 +598,22 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Creates and enqueues node for current thread and given mode.
-     *
+     *  新建一个node，并入队列
      * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
      * @return the new node
      */
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
-        Node pred = tail;
-        if (pred != null) {
+        Node pred = tail;//1. tail拷贝一份线程私有指针
+        if (pred != null) {//2. 队列不为空
             node.prev = pred;
-            if (compareAndSetTail(pred, node)) {
-                pred.next = node;
+            if (compareAndSetTail(pred, node)) {//2.1 cas
+                pred.next = node;//2.2 cas成功后连上双向链接后结束
                 return node;
             }
-        }
-        enq(node);
+        }//3. 如果tail为空，即当前队列为空，没有初始化；或者cas失败
+        enq(node);// 循环入队列
         return node;
     }
 
@@ -794,13 +794,13 @@ public abstract class AbstractQueuedSynchronizer
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;
-        if (ws == Node.SIGNAL)
+        if (ws == Node.SIGNAL)//1.如果ws为signal（-1），则应该park
             /*
              * This node has already set status asking a release
              * to signal it, so it can safely park.
              */
             return true;
-        if (ws > 0) {
+        if (ws > 0) {//2.如果ws>0,即Node.CANCELLED,则将node的prev直接指向前前一个node，直到pred的waitStatus不小于0
             /*
              * Predecessor was cancelled. Skip over predecessors and
              * indicate retry.
@@ -809,7 +809,7 @@ public abstract class AbstractQueuedSynchronizer
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
             pred.next = node;
-        } else {
+        } else {//3.如果waitStatus既不是1也不是-1，cas将前一个结点的ws设置为signal
             /*
              * waitStatus must be 0 or PROPAGATE.  Indicate that we
              * need a signal, but don't park yet.  Caller will need to
@@ -859,15 +859,15 @@ public abstract class AbstractQueuedSynchronizer
         try {
             boolean interrupted = false;
             for (;;) {
-                final Node p = node.predecessor();
-                if (p == head && tryAcquire(arg)) {
-                    setHead(node);
+                final Node p = node.predecessor();// 1. 获取前一个node
+                if (p == head && tryAcquire(arg)) {//2. 如果前一个node是head，即当前node是第一个node，则可以尝试获取
+                    setHead(node);//2.1 获取成功后更新head
                     p.next = null; // help GC
                     failed = false;
                     return interrupted;
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                if (shouldParkAfterFailedAcquire(p, node) &&//3. 如果acquire失败后判断是否需要park当前线程
+                    parkAndCheckInterrupt())//3.1 如果需要park，就park
                     interrupted = true;
             }
         } finally {
@@ -946,14 +946,14 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument
      */
     private void doAcquireShared(int arg) {
-        final Node node = addWaiter(Node.SHARED);
+        final Node node = addWaiter(Node.SHARED);//创建一个shared Node
         boolean failed = true;
         try {
             boolean interrupted = false;
             for (;;) {
-                final Node p = node.predecessor();
-                if (p == head) {
-                    int r = tryAcquireShared(arg);
+                final Node p = node.predecessor();//获得当前结点的前驱结点
+                if (p == head) {//如果前驱结点是head结点，就是说当前结点是第一个结点，就有资格去抢锁
+                    int r = tryAcquireShared(arg);//尝试获取锁
                     if (r >= 0) {
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
@@ -979,14 +979,14 @@ public abstract class AbstractQueuedSynchronizer
      */
     private void doAcquireSharedInterruptibly(int arg)
         throws InterruptedException {
-        final Node node = addWaiter(Node.SHARED);
+        final Node node = addWaiter(Node.SHARED);//1.入等待队列
         boolean failed = true;
         try {
             for (;;) {
                 final Node p = node.predecessor();
-                if (p == head) {
-                    int r = tryAcquireShared(arg);
-                    if (r >= 0) {
+                if (p == head) {//2.如果前一个结点是head了（head不存放内容，就是说当前node是第一个有内容的等待结点）
+                    int r = tryAcquireShared(arg);//2.1 尝试获取
+                    if (r >= 0) {//2.2 如果获取成功，否则进入新的循环
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
@@ -1195,8 +1195,8 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
-        if (!tryAcquire(arg) &&
-            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        if (!tryAcquire(arg) &&//1. 尝试获取
+            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))//2. 获取失败后将node入队列
             selfInterrupt();
     }
 
@@ -1300,7 +1300,7 @@ public abstract class AbstractQueuedSynchronizer
             throws InterruptedException {
         if (Thread.interrupted())
             throw new InterruptedException();
-        if (tryAcquireShared(arg) < 0)
+        if (tryAcquireShared(arg) < 0)// cas自旋锁，如果没有足够的states了就进入等待队列
             doAcquireSharedInterruptibly(arg);
     }
 
@@ -1509,7 +1509,7 @@ public abstract class AbstractQueuedSynchronizer
      *         is at the head of the queue or the queue is empty
      * @since 1.7
      */
-    public final boolean hasQueuedPredecessors() {
+    public final boolean hasQueuedPredecessors() {//队列不为空，且当前线程不是第一个
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
         // thread is first in queue.
