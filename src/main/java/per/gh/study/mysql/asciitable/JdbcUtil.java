@@ -15,16 +15,16 @@ public class JdbcUtil {
     String user = "root";
     String password = "E9B69FDF118D1F46E3E358CF039B921F";
 
-    public JdbcUtil() {
+    public JdbcUtil(String fileName) {
         try {
-            init();
+            init(fileName);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void init() throws IOException {
-        AsciiTableParser parser = new AsciiTableParser().parse();
+    private void init(String fileName) throws IOException {
+        AsciiTableParser parser = new AsciiTableParser().load(fileName).parse();
         this.schema = parser.getSchema();
         this.tableName = parser.getTableName();
         this.data = parser.getData();

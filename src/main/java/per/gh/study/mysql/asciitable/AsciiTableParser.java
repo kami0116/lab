@@ -2,6 +2,8 @@ package per.gh.study.mysql.asciitable;
 
 import lombok.Data;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -13,18 +15,46 @@ public class AsciiTableParser {
     private List<ColumnDataStructure> schema;
     private List<List<String>> data;
     private String tableName;
+    private StringBuilder table;
+
+    public AsciiTableParser() {
+        init();
+    }
+
+    void init() {
+        schema = new LinkedList<>();
+        data = new LinkedList<>();
+        table = new StringBuilder();
+    }
+
+    public AsciiTableParser load(String path) throws IOException {
+        InputStream in = null;
+        try {
+            in = this.getClass().getClassLoader().getResourceAsStream(path);
+            byte[] buf = new byte[4096];
+            int length;
+            for (; (length = in.read(buf)) > 0; ) {
+                table.append(new String(buf, 0, length));
+            }
+        } finally {
+            try {
+                if (in != null)
+                    in.close();
+            } catch (IOException e) {
+            }
+        }
+        return this;
+    }
 
     public AsciiTableParser parse() throws IOException {
-        init();
-        String table = load("ascii_table.txt");
-        String[] lines = table.split("\n");
+        String[] lines = table.toString().split("\n");
         tableName = lines[0].trim();
         String[] names = lines[2].split("\\|");
         String[] firstColumn = lines[4].split("\\|");
         //schema
         for (int i = 1; i < names.length - 1; i++) {
             ColumnDataStructure cds = new ColumnDataStructure();
-            cds.name = names[i];
+            cds.name = names[i].trim();
             String cell = firstColumn[i].trim();
             //type
             if (isNumber(cell)) {
@@ -53,32 +83,7 @@ public class AsciiTableParser {
         return this;
     }
 
-    void init() {
-        schema = new LinkedList<>();
-        data = new LinkedList<>();
-    }
-
-    String load(String path) throws IOException {
-        StringBuilder table = new StringBuilder();
-        InputStream in = null;
-        try {
-            in = this.getClass().getClassLoader().getResourceAsStream(path);
-            byte[] buf = new byte[4096];
-            int length;
-            for (; (length = in.read(buf)) > 0; ) {
-                table.append(new String(buf, 0, length));
-            }
-        } finally {
-            try {
-                if (in != null)
-                    in.close();
-            } catch (IOException e) {
-            }
-        }
-        return table.toString();
-    }
-
-    boolean isNumber(String c) {
+    private boolean isNumber(String c) {
         boolean flag = true;
         for (byte b : c.getBytes()) {
             if (b == '.') {
