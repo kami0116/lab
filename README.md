@@ -5,3 +5,5 @@
 ## [algorithm](docs/algorithm.md)
 
 ## [juc](docs/juc.md)
+
+## [util](docs/util.md)
